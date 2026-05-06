@@ -1,11 +1,17 @@
-using Microsoft.EntityFrameworkCore;
-using AmsHelpdeskApi.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.OpenApi.Models;
+using AmsHelpdeskApi.Application.Tickets.AssignTicket;
+using AmsHelpdeskApi.Application.Tickets.CreateTicket;
+using AmsHelpdeskApi.Application.Tickets.DeleteTicket;
+using AmsHelpdeskApi.Application.Tickets.GetTicket;
+using AmsHelpdeskApi.Application.Tickets.TakeTicket;
+using AmsHelpdeskApi.Application.Tickets.UpdateTicket;
+using AmsHelpdeskApi.Infrastructure.Data;
 using AmsHelpdeskApi.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
@@ -71,9 +77,15 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 
+builder.Services.AddScoped<CreateTicketUseCase>();
+builder.Services.AddScoped<TakeTicketUseCase>();
+builder.Services.AddScoped<AssignTicketUseCase>();
+builder.Services.AddScoped<UpdateTicketUseCase>();
+builder.Services.AddScoped<DeleteTicketUseCase>();
+builder.Services.AddScoped<GetTicketUseCase>();
+
 builder.Services.AddAuthorization();
 
-builder.Services.AddScoped<TicketService>();
 builder.Services.AddScoped<PasswordService>();
 
 var app = builder.Build();

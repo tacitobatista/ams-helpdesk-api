@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using AmsHelpdeskApi.Models;
+using AmsHelpdeskApi.Domain.Entities;
 
-namespace AmsHelpdeskApi.Data
+namespace AmsHelpdeskApi.Infrastructure.Data
 {
     public class AppDbContext : DbContext
     {

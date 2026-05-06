@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using AmsHelpdeskApi.Data;
-using AmsHelpdeskApi.Models;
 using AmsHelpdeskApi.Services;
+using AmsHelpdeskApi.Infrastructure.Data;
+using AmsHelpdeskApi.Domain.Entities;
 
 namespace AmsHelpdeskApi.Controllers
 {

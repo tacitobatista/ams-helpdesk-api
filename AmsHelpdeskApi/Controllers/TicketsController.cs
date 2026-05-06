@@ -1,6 +1,9 @@
-﻿using AmsHelpdeskApi.Data;
-using AmsHelpdeskApi.Models;
-using AmsHelpdeskApi.Services;
+﻿using AmsHelpdeskApi.Application.Tickets.AssignTicket;
+using AmsHelpdeskApi.Application.Tickets.CreateTicket;
+using AmsHelpdeskApi.Application.Tickets.DeleteTicket;
+using AmsHelpdeskApi.Application.Tickets.GetTicket;
+using AmsHelpdeskApi.Application.Tickets.TakeTicket;
+using AmsHelpdeskApi.Application.Tickets.UpdateTicket;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -12,65 +15,108 @@ namespace AmsHelpdeskApi.Controllers
     [ApiController]
     public class TicketsController : ControllerBase
     {
-        private readonly TicketService _service;
+        private readonly CreateTicketUseCase _createUseCase;
+        private readonly TakeTicketUseCase _takeUseCase;
+        private readonly AssignTicketUseCase _assignUseCase;
+        private readonly UpdateTicketUseCase _updateUseCase;
+        private readonly DeleteTicketUseCase _deleteUseCase;
+        private readonly GetTicketUseCase _getUseCase;
 
-        public TicketsController(TicketService service)
+        public TicketsController(CreateTicketUseCase createUseCase, TakeTicketUseCase takeUseCase, AssignTicketUseCase assignUseCase, UpdateTicketUseCase updateUseCase, DeleteTicketUseCase deleteUseCase, GetTicketUseCase getUseCase)
         {
-            _service = service;
+            _createUseCase = createUseCase;
+            _takeUseCase = takeUseCase;
+            _assignUseCase = assignUseCase;
+            _updateUseCase = updateUseCase;
+            _deleteUseCase = deleteUseCase;
+            _getUseCase = getUseCase;
         }
 
         [HttpGet]
         public IActionResult Get()
         {
-            var tickets = _service.GetAll();
+            var tickets = _getUseCase.Execute();
             return Ok(tickets);
         }
 
         [HttpPost]
-        public IActionResult Create(Ticket ticket)
+        public IActionResult Create(CreateTicketRequest request)
         {
-            return Ok(_service.Create(ticket));
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+            {
+                return Unauthorized();
+            }
+
+            if(!int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var result = _createUseCase.Execute(request, userId);
+
+            return Ok(result);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, Ticket updatedTicket)
+        public IActionResult Update(int id, UpdateTicketRequest request)
         {
-            var ticket = _service.Update(id, updatedTicket);
-
-            if (ticket == null)
+            try
             {
-                return NotFound();
+                var result = _updateUseCase.Execute(id, request);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
             }
-            return Ok(ticket);
+            catch(InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var success = _service.Delete(id);
-            if (!success)
+            try
             {
-                return NotFound();
+                var success = _deleteUseCase.Execute(id);
+
+                if (!success)
+                {
+                    return NotFound();
+                }
+                return NoContent();
             }
-            return NoContent();
+
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }            
         }
 
         [Authorize(Roles ="Admin")]
         [HttpPut("{id}/assign/{userId}")]
         public IActionResult Assign(int id, int userId)
         {
-            var ticket = _service.GetById(id);
-            if(ticket == null)
+            try
             {
-                return NotFound();
+                var result = _assignUseCase.Execute(id, userId);
+
+                if (result == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(result);
             }
-
-            ticket.AssignedToUserId = userId;
-
-            _service.Update(id, ticket);
-
-            return Ok(ticket);
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [Authorize]
@@ -84,20 +130,27 @@ namespace AmsHelpdeskApi.Controllers
                 return Unauthorized();
             }
 
-            var userId = int.Parse(userIdClaim.Value);
-
-            var ticket = _service.GetById(id);
-            
-            if(ticket == null)
+            if(!int.TryParse(userIdClaim.Value, out var userId))
             {
-                return NotFound();
+                return Unauthorized();
             }
 
-            ticket.AssignedToUserId = userId;
+            try
+            {
+                var result = _takeUseCase.Execute(id, userId);
 
-            _service.Update(id, ticket);
+                if (result == null)
+                {
+                    return NotFound();
+                }
 
-            return Ok(ticket);
+                return Ok(result);
+            }
+
+            catch(InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }
