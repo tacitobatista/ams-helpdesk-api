@@ -12,11 +12,11 @@ namespace AmsHelpdeskApi.Application.Tickets.GetTicket
             _context = context;
         }
 
-    public List<TicketResponse> Execute()
+    public Result<List<TicketResponse>> Execute()
         {
-            var tickets = _context.Tickets.ToList();
+            var tickets = _context.Tickets.Select(ticket => TicketMapper.ToResponse(ticket)).ToList();
 
-            return tickets.Select(TicketMapper.ToResponse).ToList();
+            return Result<List<TicketResponse>>.Success(tickets);
         }
     }
 }

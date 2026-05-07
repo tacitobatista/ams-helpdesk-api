@@ -1,7 +1,8 @@
-﻿using AmsHelpdeskApi.Infrastructure.Data;
-using AmsHelpdeskApi.Domain.Entities;
-using AmsHelpdeskApi.Application.Tickets.Common;
+﻿using AmsHelpdeskApi.Application.Tickets.Common;
 using AmsHelpdeskApi.Application.Tickets.UpdateTicket;
+using AmsHelpdeskApi.Domain.Entities;
+using AmsHelpdeskApi.Infrastructure.Data;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AmsHelpdeskApi.Application.Tickets.CreateTicket
 {
@@ -14,26 +15,36 @@ namespace AmsHelpdeskApi.Application.Tickets.CreateTicket
             _context = context;
         }
 
-        public TicketResponse Execute(CreateTicketRequest request,int ticketId)
+        public Result<TicketResponse> Execute(CreateTicketRequest request,int userId)
         {
-            var ticket = _context.Tickets.Find(ticketId);
 
-            if (ticket == null)
+            var errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(request.Title))
+                errors.Add("Título é obrigatório.");
+
+            if (string.IsNullOrWhiteSpace(request.Description))
+                errors.Add("Descrição é obrigatória.");
+
+            if (errors.Any())
+                return Result<TicketResponse>.Failure(string.Join(" | ", errors));
+
+            var ticket = new Ticket
             {
-                return null;
-            }
+                Title = request.Title,
+                Description = request.Description,
+                AssignedToUserId = userId,
+                Status = Ticket.TicketStatus.Open
+            };
 
-            if (ticket.Status == Ticket.TicketStatus.Closed)
-            {
-                throw new InvalidOperationException("Não é possível atualizar um ticket fechado.");
-            }
+            _context.Tickets.Add(ticket);
 
-            ticket.Title = request.Title;
-            ticket.Description = request.Description;
+            var changes = _context.SaveChanges();
 
-            _context.SaveChanges();
+            if (changes == 0)
+                return Result<TicketResponse>.Failure("Erro ao salvar ticket.");
 
-            return TicketMapper.ToResponse(ticket);
+            return Result<TicketResponse>.Success(TicketMapper.ToResponse(ticket));
         }
     }
 }

@@ -4,6 +4,7 @@ using AmsHelpdeskApi.Application.Tickets.DeleteTicket;
 using AmsHelpdeskApi.Application.Tickets.GetTicket;
 using AmsHelpdeskApi.Application.Tickets.TakeTicket;
 using AmsHelpdeskApi.Application.Tickets.UpdateTicket;
+using AmsHelpdeskApi.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -35,122 +36,108 @@ namespace AmsHelpdeskApi.Controllers
         [HttpGet]
         public IActionResult Get()
         {
-            var tickets = _getUseCase.Execute();
-            return Ok(tickets);
+            var result = _getUseCase.Execute();
+
+            return Ok(result.Data);
         }
 
         [HttpPost]
         public IActionResult Create(CreateTicketRequest request)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null)
-            {
+            if (!TryGetUserId(out var userId))
                 return Unauthorized();
-            }
-
-            if(!int.TryParse(userIdClaim.Value, out var userId))
-            {
-                return Unauthorized();
-            }
 
             var result = _createUseCase.Execute(request, userId);
 
-            return Ok(result);
+            if(!result.IsSuccess)
+                return BadRequest(new { message = result.Error });
+
+            return CreatedAtAction(nameof(Get), new { id = result.Data.Id }, result.Data);
         }
 
         [HttpPut("{id}")]
         public IActionResult Update(int id, UpdateTicketRequest request)
         {
-            try
-            {
-                var result = _updateUseCase.Execute(id, request);
-                if (result == null)
-                {
-                    return NotFound();
-                }
-                return Ok(result);
-            }
-            catch(InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var result = _updateUseCase.Execute(id, request);
+
+            if(!result.IsSuccess)
+                return BadRequest(new { message = result.Error });
+
+            return Ok(result.Data);
         }
 
         [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            try
-            {
-                var success = _deleteUseCase.Execute(id);
+            var result = _deleteUseCase.Execute(id);
 
-                if (!success)
+            if (!result.IsSuccess)
+            {
+                if (result.Error == "Ticket não encontrado.")
                 {
-                    return NotFound();
+                    return NotFound(new { message = result.Error });
                 }
-                return NoContent();
+
+                return BadRequest(new { message = result.Error });
             }
 
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }            
+            return NoContent();
         }
 
         [Authorize(Roles ="Admin")]
         [HttpPut("{id}/assign/{userId}")]
         public IActionResult Assign(int id, int userId)
         {
-            try
-            {
-                var result = _assignUseCase.Execute(id, userId);
+            var result = _assignUseCase.Execute(id, userId);
 
-                if (result == null)
+            if (!result.IsSuccess)
+            {
+                if (result.Error == "Ticket não encontrado.")
                 {
-                    return NotFound();
+                    return NotFound(new { message = result.Error });
                 }
 
-                return Ok(result);
+                return BadRequest(new { message = result.Error });
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+
+            return Ok(result.Data);
         }
 
         [Authorize]
         [HttpPut("{id}/take")]
         public IActionResult Take(int id)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            
-            if (userIdClaim == null)
+            if(!TryGetUserId(out var userId))
             {
                 return Unauthorized();
             }
 
-            if(!int.TryParse(userIdClaim.Value, out var userId))
-            {
-                return Unauthorized();
-            }
+            var result = _takeUseCase.Execute(id, userId);
 
-            try
+            if (!result.IsSuccess)
             {
-                var result = _takeUseCase.Execute(id, userId);
-
-                if (result == null)
+                if(result.Error == "Ticket não encontrado")
                 {
-                    return NotFound();
+                    return NotFound(new { message = result.Error });
                 }
 
-                return Ok(result);
+                return BadRequest(new { message = result.Error });
             }
 
-            catch(InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return Ok(result.Data);
+        }
+
+        private bool TryGetUserId(out int userId)
+        {
+            userId = 0;
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+                return false;
+
+            return int.TryParse(userIdClaim.Value, out userId);
         }
     }
 }

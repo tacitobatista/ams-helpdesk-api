@@ -1,4 +1,5 @@
-﻿using AmsHelpdeskApi.Domain.Entities;
+﻿using AmsHelpdeskApi.Application.Tickets.Common;
+using AmsHelpdeskApi.Domain.Entities;
 using AmsHelpdeskApi.Infrastructure.Data;
 
 namespace AmsHelpdeskApi.Application.Tickets.UpdateTicket
@@ -12,35 +13,35 @@ namespace AmsHelpdeskApi.Application.Tickets.UpdateTicket
             _context = context;
         }
 
-        public Ticket Execute (int ticketId, UpdateTicketRequest request)
+        public Result<TicketResponse> Execute (int ticketId, UpdateTicketRequest request)
         {
             var ticket = _context.Tickets.Find(ticketId);
 
             if (ticket == null)
             {
-                return null;
+                return Result<TicketResponse>.Failure("Ticket não encontrado.");
             }
 
             if(ticket.Status == Ticket.TicketStatus.Closed)
             {
-                throw new InvalidOperationException("Não é possível editar um ticket fechado.");
+                return Result<TicketResponse>.Failure("Não é possível editar um ticket fechado.");
             }
 
             if (string.IsNullOrWhiteSpace(request.Title))
             {
-                throw new InvalidOperationException("Título é obrigatório.");
+                return Result<TicketResponse>.Failure("Título é obrigatório.");
             }
 
             if (string.IsNullOrWhiteSpace(request.Description))
             {
-                throw new InvalidOperationException("Descrição é obrigatória.");
+                return Result<TicketResponse>.Failure("Descrição é obrigatória.");
             }
 
             ticket.Title = request.Title;
             ticket.Description = request.Description;
 
             _context.SaveChanges();
-            return ticket;
+            return Result<TicketResponse>.Success(TicketMapper.ToResponse(ticket));
         }
     }
 }

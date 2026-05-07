@@ -13,21 +13,37 @@ namespace AmsHelpdeskApi.Application.Tickets.AssignTicket
             _context = context;
         }
 
-        public TicketResponse Execute(int ticketId, int targetUserId)
+        public Result<TicketResponse> Execute(int ticketId, int targetUserId)
         {
             var ticket = _context.Tickets.Find(ticketId);
+
             if (ticket == null)
             {
-                return null;
+                return Result<TicketResponse>.Failure("Ticket não encontrado.");
             }
-            if(ticket.AssignedToUserId != null)
+
+            if (ticket.Status == Ticket.TicketStatus.Closed)
             {
-                throw new InvalidOperationException("Ticket já está atribuído a outro usuário.");
+                return Result<TicketResponse>.Failure("Não é possível atribuir um ticket fechado.");
+            }
+
+            var user = _context.Users.Find(targetUserId);
+
+            if (user == null)
+            {
+                return Result<TicketResponse>.Failure("Usuário destino não encontrado.");
+            }
+
+            if (ticket.AssignedToUserId == targetUserId)
+            {
+                return Result<TicketResponse>.Failure("Ticket já está atribuído para este usuário.");
             }
 
             ticket.AssignedToUserId = targetUserId;
+
             _context.SaveChanges();
-            return TicketMapper.ToResponse(ticket);
+
+            return Result<TicketResponse>.Success(TicketMapper.ToResponse(ticket));
         }
     }
 }

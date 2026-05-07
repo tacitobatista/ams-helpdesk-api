@@ -1,4 +1,5 @@
-﻿using AmsHelpdeskApi.Domain.Entities;
+﻿using AmsHelpdeskApi.Application.Tickets.Common;
+using AmsHelpdeskApi.Domain.Entities;
 using AmsHelpdeskApi.Infrastructure.Data;
 
 namespace AmsHelpdeskApi.Application.Tickets.DeleteTicket
@@ -12,24 +13,24 @@ namespace AmsHelpdeskApi.Application.Tickets.DeleteTicket
             _context = context;
         }
 
-        public bool Execute (int ticketId)
+        public Result<bool> Execute (int ticketId)
         {
             var ticket = _context.Tickets.Find(ticketId);
 
             if (ticket == null)
             {
-                return false;
+                return Result<bool>.Failure("Ticket não encontrado.");
             }
 
             if(ticket.Status != Ticket.TicketStatus.Open)
             {
-                throw new InvalidOperationException("Só é possível deletar tickets abertos.");
+                return Result<bool>.Failure("Só é possível deletar tickets abertos.");
             }
 
             _context.Tickets.Remove(ticket);
             _context.SaveChanges();
 
-            return true;
+            return Result<bool>.Success(true);
         }
     }
 }
