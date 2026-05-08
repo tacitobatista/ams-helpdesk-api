@@ -1,6 +1,6 @@
 # 🛠️ AMS Helpdesk API
 
-API REST desenvolvida em **.NET 8** para gerenciamento de chamados (tickets), com autenticação JWT e controle de acesso por perfil (Admin/User).
+API REST desenvolvida em **.NET 8** para gerenciamento de chamados (tickets), com autenticação JWT, controle de acesso por perfil e arquitetura baseada em casos de uso (Use Cases).
 
 ---
 
@@ -8,61 +8,89 @@ API REST desenvolvida em **.NET 8** para gerenciamento de chamados (tickets), co
 
 Este projeto simula um sistema de atendimento interno (Helpdesk), onde usuários podem abrir chamados e administradores podem gerenciar e atribuir tickets.
 
-A aplicação foi desenvolvida com foco em boas práticas de backend, incluindo:
+O projeto começou como uma API simples para estudo da plataforma ASP.NET Core e foi evoluindo gradualmente com foco em:
 
-* Autenticação com JWT
-* Controle de acesso por roles
-* Validação de dados
-* Separação em camadas (Controller / Service)
-* Persistência com Entity Framework Core
+- Arquitetura backend
+- Organização de código
+- Separação de responsabilidades
+- Regras de negócio
+- Padrões utilizados no mercado .NET
 
 ---
 
 ## 🚀 Tecnologias utilizadas
 
-* .NET 8 (ASP.NET Core Web API)
-* Entity Framework Core
-* SQL Server (LocalDB)
-* JWT (Json Web Token)
-* Swagger (Swashbuckle)
+- .NET 8 (ASP.NET Core Web API)
+- Entity Framework Core
+- SQL Server (LocalDB)
+- JWT (Json Web Token)
+- Swagger (Swashbuckle)
 
 ---
 
-## 🔐 Autenticação e Autorização
+## 🧠 Conceitos e arquitetura aplicados
 
-A API utiliza autenticação baseada em **JWT**.
+Durante o desenvolvimento, o projeto foi refatorado para utilizar uma estrutura mais organizada e escalável.
 
-### Perfis de usuário:
+Atualmente a aplicação utiliza:
 
-* **User**
-
-  * Criar tickets
-  * Visualizar tickets
-  * Assumir tickets (`take`)
-
-* **Admin**
-
-  * Todas as permissões de User
-  * Atribuir tickets
-  * Deletar tickets
+- Use Cases
+- DTOs (Request / Response)
+- Result Pattern
+- Mappers
+- Separação de responsabilidades
+- Regras de negócio centralizadas na camada de aplicação
 
 ---
 
 ## 📂 Estrutura do projeto
 
-```
+```bash
 /Controllers
-/Models
-/Services
-/Data
+/Application
+    /Tickets
+        /AssignTicket
+        /CreateTicket
+        /DeleteTicket
+        /GetTicket
+        /TakeTicket
+        /UpdateTicket
+        /Common
+/Infrastructure
+    /Data
+/Domain
+    /Entities
 /Migrations
 ```
 
-* **Controllers** → Endpoints da API
-* **Services** → Regras de negócio
-* **Data** → Contexto do banco
-* **Models** → Entidades
-* **Migrations** → Versionamento do banco
+### 📌 Responsabilidades
+
+- **Controllers** → Endpoints HTTP e autenticação/autorização
+- **Application** → Casos de uso e regras de negócio
+- **Domain** → Entidades da aplicação
+- **Data** → Contexto do banco e persistência
+- **Migrations** → Versionamento do banco
+
+---
+
+## 🔐 Autenticação e autorização
+
+A API utiliza autenticação baseada em **JWT**.
+
+### Perfis de usuário
+
+### 👤 User
+
+- Criar tickets
+- Visualizar tickets
+- Assumir tickets (`take`)
+
+### 👑 Admin
+
+- Todas as permissões de User
+- Atribuir tickets
+- Reatribuir tickets
+- Deletar tickets
 
 ---
 
@@ -70,56 +98,93 @@ A API utiliza autenticação baseada em **JWT**.
 
 ### 👤 Autenticação
 
-* `POST /api/Auth/register` → Cadastro de usuário
-* `POST /api/Auth/login` → Login e geração de token
+- `POST /api/Auth/register` → Cadastro de usuário
+- `POST /api/Auth/login` → Login e geração de token JWT
 
 ---
 
 ### 🎫 Tickets
 
-* `GET /api/Tickets` → Listar tickets
-* `POST /api/Tickets` → Criar ticket
-* `PUT /api/Tickets/{id}` → Atualizar ticket
-* `DELETE /api/Tickets/{id}` → Deletar ticket (**Admin**)
+- `GET /api/Tickets` → Listar tickets
+- `POST /api/Tickets` → Criar ticket
+- `PUT /api/Tickets/{id}` → Atualizar ticket
+- `DELETE /api/Tickets/{id}` → Deletar ticket (**Admin**)
 
 ---
 
-### 🔄 Atribuição de tickets
+### 🔄 Gerenciamento de tickets
 
-* `PUT /api/Tickets/{id}/assign/{userId}` → Atribuir ticket (**Admin**)
-* `PUT /api/Tickets/{id}/take` → Usuário assume ticket
+- `PUT /api/Tickets/{id}/assign/{userId}` → Atribuir ticket (**Admin**)
+- `PUT /api/Tickets/{id}/take` → Usuário assume ticket
+
+---
+
+## 📜 Regras de negócio implementadas
+
+- Não é possível editar tickets fechados
+- Não é possível assumir tickets já atribuídos
+- Não é possível assumir tickets fechados
+- Admin pode reatribuir tickets
+- Não é possível atribuir tickets para usuários inexistentes
+- Apenas tickets abertos podem ser deletados
+
+---
+
+## ✅ Result Pattern
+
+Os Use Cases utilizam um padrão padronizado de retorno para sucesso e falha:
+
+```csharp
+Result<T>
+```
+
+Exemplo:
+
+```csharp
+return Result<TicketResponse>.Success(data);
+
+return Result<TicketResponse>.Failure("Erro");
+```
 
 ---
 
 ## 🧪 Como executar o projeto
 
-1. Clone o repositório:
+### 1. Clone o repositório
 
 ```bash
 git clone https://github.com/tacitobatista/ams-helpdesk-api.git
 ```
 
-2. Acesse a pasta do projeto:
+---
+
+### 2. Acesse a pasta do projeto
 
 ```bash
 cd AmsHelpdeskApi
 ```
 
-3. Execute as migrations:
+---
+
+### 3. Execute as migrations
 
 ```bash
 dotnet ef database update
 ```
 
-4. Rode a aplicação:
+---
+
+### 4. Rode a aplicação
 
 ```bash
 dotnet run
 ```
 
-5. Acesse o Swagger:
+---
 
-```
+### 5. Acesse o Swagger
+
+```bash
 https://localhost:xxxx/swagger
 ```
 
@@ -130,17 +195,24 @@ https://localhost:xxxx/swagger
 1. Faça login em `/api/Auth/login`
 2. Copie o token retornado
 3. Clique em **Authorize 🔒**
-4. Insira apenas o token (sem "Bearer")
+4. Insira apenas o token (sem `Bearer`)
 
 ---
 
-## 📈 Possíveis melhorias
+## 📈 Próximas melhorias planejadas
 
-* Hash de senha com BCrypt
-* Refresh Token
-* Logs estruturados
-* Testes automatizados
-* Deploy em cloud (Azure / AWS)
+O projeto continuará evoluindo com foco em tecnologias amplamente utilizadas no mercado backend .NET:
+
+- Docker
+- Docker Compose
+- PostgreSQL
+- Mensageria com RabbitMQ
+- Background Services
+- Kubernetes
+- Logs estruturados
+- Testes automatizados
+- Observabilidade
+- Deploy em cloud (Azure / AWS)
 
 ---
 
@@ -148,5 +220,6 @@ https://localhost:xxxx/swagger
 
 Desenvolvido por **Tácito Machado Batista**
 
-* Experiência como Analista de Desenvolvimento na Volkswagen (AMS .NET)
-* Foco em backend e APIs REST
+- Experiência como Analista de Desenvolvimento na Volkswagen (AMS .NET)
+- Foco em backend e APIs REST
+- Estudando arquitetura backend e tecnologias DevOps
