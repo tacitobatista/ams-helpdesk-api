@@ -1,5 +1,17 @@
 bin/
 obj/
 .vs/
+
 *.user
+*.suo
+
+.env
+
+**/bin/
+**/obj/
+
+mssql-data/
+
 appsettings.Development.json
+
+DockerDesktop/
