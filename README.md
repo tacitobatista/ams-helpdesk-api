@@ -6,15 +6,9 @@ API REST desenvolvida em **.NET 8** para gerenciamento de chamados (tickets), co
 
 ## 📌 Sobre o projeto
 
-Este projeto simula um sistema de atendimento interno (Helpdesk), onde usuários podem abrir chamados e administradores podem gerenciar e atribuir tickets.
+Este projeto simula um sistema interno de Helpdesk, onde usuários podem abrir chamados e administradores podem gerenciar e atribuir tickets.
 
-O projeto começou como uma API simples para estudo da plataforma ASP.NET Core e foi evoluindo gradualmente com foco em:
-
-- Arquitetura backend
-- Organização de código
-- Separação de responsabilidades
-- Regras de negócio
-- Padrões utilizados no mercado .NET
+O projeto foi desenvolvido com foco em boas práticas de desenvolvimento backend utilizando ASP.NET Core, evoluindo gradualmente para uma estrutura mais organizada, desacoplada e próxima de aplicações utilizadas no mercado.
 
 ---
 
@@ -22,24 +16,30 @@ O projeto começou como uma API simples para estudo da plataforma ASP.NET Core e
 
 - .NET 8 (ASP.NET Core Web API)
 - Entity Framework Core
-- SQL Server (LocalDB)
-- JWT (Json Web Token)
+- SQL Server
+- Docker
+- Docker Compose
+- JWT Authentication
+- ASP.NET Identity PasswordHasher
 - Swagger (Swashbuckle)
 
 ---
 
 ## 🧠 Conceitos e arquitetura aplicados
 
-Durante o desenvolvimento, o projeto foi refatorado para utilizar uma estrutura mais organizada e escalável.
+Atualmente o projeto utiliza:
 
-Atualmente a aplicação utiliza:
-
+- Arquitetura em camadas
 - Use Cases
 - DTOs (Request / Response)
 - Result Pattern
 - Mappers
+- Middleware global de exceções
+- Autenticação JWT
+- Autorização baseada em Roles e Policies
 - Separação de responsabilidades
 - Regras de negócio centralizadas na camada de aplicação
+- Migrations automáticas com EF Core
 
 ---
 
@@ -61,6 +61,8 @@ Atualmente a aplicação utiliza:
 /Domain
     /Entities
 /Migrations
+/Services
+/Middleware
 ```
 
 ### 📌 Responsabilidades
@@ -68,16 +70,29 @@ Atualmente a aplicação utiliza:
 - **Controllers** → Endpoints HTTP e autenticação/autorização
 - **Application** → Casos de uso e regras de negócio
 - **Domain** → Entidades da aplicação
-- **Data** → Contexto do banco e persistência
+- **Infrastructure/Data** → Persistência e contexto do banco
+- **Services** → JWT, hash de senha e serviços auxiliares
+- **Middleware** → Tratamento global de exceções
 - **Migrations** → Versionamento do banco
 
 ---
 
 ## 🔐 Autenticação e autorização
 
-A API utiliza autenticação baseada em **JWT**.
+A API utiliza autenticação baseada em JWT.
 
-### Perfis de usuário
+### Segurança implementada
+
+- JWT via variáveis de ambiente
+- Password hashing com `PasswordHasher`
+- Claims customizadas
+- Roles (`User` e `Admin`)
+- Policies de autorização
+- Middleware global para tratamento de exceções
+
+---
+
+## 👥 Perfis de usuário
 
 ### 👤 User
 
@@ -158,23 +173,33 @@ git clone https://github.com/tacitobatista/ams-helpdesk-api.git
 
 ---
 
-### 2. Acesse a pasta do projeto
+### 2. Configure as variáveis de ambiente
 
-```bash
-cd AmsHelpdeskApi
+Crie um arquivo `.env` baseado no `.env.example`
+
+Exemplo:
+
+```env
+SA_PASSWORD=Your_password123
+DB_NAME=AmsHelpdeskDb
+JWT_KEY=sua-chave-super-secreta
+JWT_ISSUER=AmsHelpdeskApi
+JWT_AUDIENCE=AmsHelpdeskApiUsers
 ```
 
 ---
 
-### 3. Execute as migrations
+### 3. Suba o SQL Server com Docker
 
 ```bash
-dotnet ef database update
+docker compose up -d db
 ```
 
 ---
 
-### 4. Rode a aplicação
+### 4. Execute a API
+
+Via Visual Studio ou:
 
 ```bash
 dotnet run
@@ -190,28 +215,34 @@ https://localhost:xxxx/swagger
 
 ---
 
+## 🐳 Executando stack completa com Docker
+
+```bash
+docker compose up --build
+```
+
+---
+
 ## 🔑 Uso do JWT no Swagger
 
 1. Faça login em `/api/Auth/login`
 2. Copie o token retornado
 3. Clique em **Authorize 🔒**
-4. Insira apenas o token (sem `Bearer`)
+4. Insira o token JWT
 
 ---
 
 ## 📈 Próximas melhorias planejadas
 
-O projeto continuará evoluindo com foco em tecnologias amplamente utilizadas no mercado backend .NET:
-
-- Docker
-- Docker Compose
-- PostgreSQL
-- Mensageria com RabbitMQ
-- Background Services
-- Kubernetes
-- Logs estruturados
 - Testes automatizados
+- Logs estruturados
+- RabbitMQ / mensageria
+- Background Services
 - Observabilidade
+- Cache distribuído
+- PostgreSQL
+- Kubernetes
+- CI/CD
 - Deploy em cloud (Azure / AWS)
 
 ---
@@ -222,4 +253,3 @@ Desenvolvido por **Tácito Machado Batista**
 
 - Experiência como Analista de Desenvolvimento na Volkswagen (AMS .NET)
 - Foco em backend e APIs REST
-- Estudando arquitetura backend e tecnologias DevOps

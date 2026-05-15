@@ -66,7 +66,7 @@ namespace AmsHelpdeskApi.Controllers
             return Ok(result.Data);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
@@ -85,7 +85,7 @@ namespace AmsHelpdeskApi.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles ="Admin")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPut("{id}/assign/{userId}")]
         public IActionResult Assign(int id, int userId)
         {

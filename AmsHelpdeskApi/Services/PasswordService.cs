@@ -1,23 +1,28 @@
-﻿using System.Security.Cryptography;
-using System.Text;
+﻿using Microsoft.AspNetCore.Identity;
+using AmsHelpdeskApi.Domain.Entities;
+using System.Reflection.Metadata.Ecma335;
 
 namespace AmsHelpdeskApi.Services
 {
     public class PasswordService
     {
-        public string HashPassword(string password)
-        {
-            using var sha256 = SHA256.Create();
-            var bytes = Encoding.UTF8.GetBytes(password);
-            var hash = sha256.ComputeHash(bytes);
+        private readonly IPasswordHasher<User> _passwordHasher;
 
-            return Convert.ToBase64String(hash);
+        public PasswordService(IPasswordHasher<User> passwordHasher)
+        {
+            _passwordHasher = passwordHasher;
         }
 
-        public bool VerifyPassword(string password, string hash)
+        public string HashPassword(User user, string password)
         {
-            var hashedInput = HashPassword(password);
-            return hashedInput == hash;
+            return _passwordHasher.HashPassword(user, password);
+        }
+
+        public bool VerifyPassword(User user, string password)
+        {
+            var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
+
+            return result == PasswordVerificationResult.Success;
         }
     }
 }

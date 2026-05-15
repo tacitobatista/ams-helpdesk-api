@@ -1,28 +1,41 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using AmsHelpdeskApi.Domain.Entities;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+
 
 namespace AmsHelpdeskApi.Services
 {
     public class TokenService
     {
-        public string GenerateToken(string email, string role, int userId, string key)
+        private readonly IConfiguration _configuration;
+
+        public TokenService(IConfiguration configuration)
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            _configuration = configuration;
+        }
+
+        public string GenerateToken(User user)
+        {
+            var key = _configuration["JWT_KEY"];
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key!));
+
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Role, role),
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString())
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
 
             var token = new JwtSecurityToken(
                 claims: claims,
                 expires: DateTime.Now.AddHours(2),
-                signingCredentials: credentials);
+                signingCredentials: credentials
+                );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }

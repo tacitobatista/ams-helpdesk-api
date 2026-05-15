@@ -4,17 +4,25 @@ using AmsHelpdeskApi.Application.Tickets.DeleteTicket;
 using AmsHelpdeskApi.Application.Tickets.GetTicket;
 using AmsHelpdeskApi.Application.Tickets.TakeTicket;
 using AmsHelpdeskApi.Application.Tickets.UpdateTicket;
+using AmsHelpdeskApi.Domain.Entities;
 using AmsHelpdeskApi.Infrastructure.Data;
+using AmsHelpdeskApi.Middleware;
 using AmsHelpdeskApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using AmsHelpdeskApi.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
-var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
+var jwtKey = builder.Configuration["JWT_KEY"]
+    ?? throw new Exception("JWT_KEY não configurada");
+
+var key = Encoding.UTF8.GetBytes(jwtKey);
+
 
 // Add services to the container.
 
@@ -58,7 +66,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = false,
-        ValidateAudience = false      
+        ValidateLifetime = true,
+        ValidateAudience = false,
+        ValidIssuer = builder.Configuration["JWT_ISSUER"],
+        ValidAudience = builder.Configuration["JWT_AUDIENCE"],
+        ClockSkew = TimeSpan.Zero
     };
 });
 
@@ -84,8 +96,15 @@ builder.Services.AddScoped<UpdateTicketUseCase>();
 builder.Services.AddScoped<DeleteTicketUseCase>();
 builder.Services.AddScoped<GetTicketUseCase>();
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly",
+        policy => policy.RequireRole("Admin"));
+});
 
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+
+builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<PasswordService>();
 
 var app = builder.Build();
@@ -100,6 +119,7 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 

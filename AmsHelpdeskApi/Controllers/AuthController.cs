@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using AmsHelpdeskApi.Services;
+﻿using AmsHelpdeskApi.Domain.Entities;
+using AmsHelpdeskApi.DTOs.Auth;
 using AmsHelpdeskApi.Infrastructure.Data;
-using AmsHelpdeskApi.Domain.Entities;
+using AmsHelpdeskApi.Services;
+using Azure.Core;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AmsHelpdeskApi.Controllers
 {
@@ -12,31 +14,33 @@ namespace AmsHelpdeskApi.Controllers
         private readonly AppDbContext _context;
         private readonly IConfiguration _config;
         private readonly PasswordService _passwordService;
+        private readonly TokenService _tokenService;
 
-        public AuthController(AppDbContext context, IConfiguration config, PasswordService passwordService)
+        public AuthController(AppDbContext context, IConfiguration config, PasswordService passwordService, TokenService tokenService)
         {
             _context = context;
             _config = config;
             _passwordService = passwordService;
+            _tokenService = tokenService;
         }
 
         [HttpPost("register")]
-        public IActionResult Register(User user)
+        public IActionResult Register(RegisterRequestDto request)
         {
-            
-            var existingUser = _context.Users.FirstOrDefault(u => u.Email == user.Email);
+            var existingUser = _context.Users.FirstOrDefault(u => u.Email == request.Email);
 
             if (existingUser != null)
             {
                 return BadRequest(new { message = "Usuário já existe" });
             }
 
-            if (string.IsNullOrEmpty(user.Role))
+            var user = new User
             {
-                user.Role = "User";
-            }
+                Email = request.Email,
+                Role = "User"
+            };
 
-            user.PasswordHash = _passwordService.HashPassword(user.PasswordHash);
+            user.PasswordHash = _passwordService.HashPassword(user, request.Password);
 
             _context.Users.Add(user);
             _context.SaveChanges();
@@ -45,9 +49,9 @@ namespace AmsHelpdeskApi.Controllers
         }
 
         [HttpPost("login")]
-        public IActionResult Login(User login)
+        public IActionResult Login(LoginRequestDto request)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Email == login.Email);
+            var user = _context.Users.FirstOrDefault(u => u.Email == request.Email);
             
 
             if (user == null)
@@ -55,15 +59,14 @@ namespace AmsHelpdeskApi.Controllers
                 return Unauthorized(new { message = "Email ou senha inválidos" });
             }
 
-            var validPassword = _passwordService.VerifyPassword(login.PasswordHash, user.PasswordHash);
+            var validPassword = _passwordService.VerifyPassword(user, request.Password);
 
             if(!validPassword)
             {
                 return Unauthorized(new { message = "Email ou senha inválidos" });
             }
 
-            var tokenService = new TokenService();
-            var token = tokenService.GenerateToken(user.Email, user.Role, user.Id, _config["Jwt:Key"]);
+            var token = _tokenService.GenerateToken(user);
 
             return Ok(new { token });
         }
